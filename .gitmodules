@@ -4,3 +4,9 @@
 [submodule "corne-fw"]
 	path = corne-fw
 	url = git@github.com:201dreamers/corne-fw.git
+[submodule "tmux-config"]
+	path = tmux-config
+	url = git@github.com:201dreamers/tmux-config.git
+[submodule "zsh-config"]
+	path = zsh-config
+	url = git@github.com:201dreamers/zsh-config.git
