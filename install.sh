@@ -1,9 +1,5 @@
 #! /usr/bin/env bash
 
-printf "\n====================\n"
-echo "Hi, this is your local Jarvis, I'll help you to install the environment"
-
-
 # ########################
 # General helper functions
 # ########################
@@ -21,7 +17,7 @@ create_dir_if_dont_exist() {
 # $1 - app name
 print_ask_url_message() {
     echo "Please, enter the latest url for ${1}, "
-    echo "or leave the field empty and I will use what I have: "
+    echo "or leave the field empty and I'll use what I have: "
 }
 
 # $1 - default url
@@ -35,11 +31,8 @@ ask_for_url() {
 }
 
 # ################
-# Global variables
+# Main directories
 # ################
-printf "\n====================\n"
-echo "Setting up all needed directories"
-
 INSTALL_SCRIPT_DIR=$(pwd)
 
 TEMP_DIR="${HOME}/temp_dir"
@@ -66,13 +59,9 @@ create_dir_if_dont_exist ${LOCAL_DIR}
 create_dir_if_dont_exist ${LOCAL_PACKAGES_DIR}
 create_dir_if_dont_exist ${LOCAL_BIN_DIR}
 
-
-# ##################################
-# Install packages from repositories
-# ##################################
-printf "\n====================\n"
-echo "Installing packages from repositories"
-
+# ################################
+# Install packages from repository
+# ################################
 install_apt_packages() {
     local basic_packages="vim zsh git curl wget tmux zip unzip  gcc make cmake bash-completition npm fzf"
     local python_packages="python-is-python3 python3-all python3-all-venv python3-pip-whl python3-pip python3-pynvim"
@@ -85,50 +74,42 @@ install_apt_packages() {
     sudo apt install -y ${basic_packages} ${gnome_packages} ${gnome_packages} ${application_packages} ${additional_packages}
 }
 
-install_apt_packages
-
-
 # #########
 # Setup git
 # #########
-printf "\n\n====================\n"
-echo "Setting up Git"
+setup_git() {
+    echo -n "Enter you email: "
+    read -r email
 
-echo -n "Enter you email: "
-read -r email
+    echo -n "Enter you username: "
+    read -r username
 
-echo -n "Enter you username: "
-read -r username
+    git config --global user.name "${username}"
+    git config --global user.email "${email}"
 
-git config --global user.name "${username}"
-git config --global user.email "${email}"
+    echo -n "Do you have existing git ssh keys? [y/n]: "
+    read -r ans
 
-echo -n "Do you have existing git ssh keys? [y/n]: "
-read -r ans
+    if [[ "${ans}" == "y" ]]; then
+        echo "Put your existing git ssh keys into ${SSH_DIR} and press Enter"
+        read
+    else
+        echo "Generating keys"
 
-if [[ "${ans}" == "y" ]]; then
-    echo "Put your existing git ssh keys into ${SSH_DIR} and press Enter"
-    read
-else
-    echo "Generating keys"
+        ssh-keygen -t ed25519 -C ${email}
+        eval "$(ssh-agent -s)"
+        ssh-add "${SSH_DIR}/id_ed25519"
 
-    ssh-keygen -t ed25519 -C ${email}
-    eval "$(ssh-agent -s)"
-    ssh-add "${SSH_DIR}/id_ed25519"
+        echo "Your public key:"
+        cat "${SSH_DIR}/id_ed25519.pub"
+        echo "Copy this, add to your github account, and press Enter"
+        read
+    fi
+}
 
-    echo "Your public key:"
-    cat "${SSH_DIR}/id_ed25519.pub"
-    echo "Copy this, add to your github account, and press Enter"
-    read
-fi
-
-
-# ###################################
-# Install packages from other sources
-# ###################################
-printf "\n\n====================\n"
-echo "Installing packages from other sources"
-
+# ################################################
+# Functions to install packages from other sources
+# ################################################
 # $1 - url
 download_package() {
     echo "Downloading ${1} to ${DOWNLOADS_DIR}"
@@ -171,11 +152,12 @@ install_nvim() {
     download_package ${url}
     echo "Extracting ${filepath} to ${LOCAL_PACKAGES_DIR}"
     tar -C ${LOCAL_PACKAGES_DIR} -vxzf ${filepath}
+
     echo "Creating link inside ${LOCAL_BIN_DIR}"
     ln -sf "${LOCAL_PACKAGES_DIR}/nvim-linux64/bin/nvim" "${LOCAL_BIN_DIR}/nvim"
 
     echo "Linking your local and remote configs"
-    ln -sf ./nvim "${CONFIG_DIR}/nvim"
+    ln -sf ./nvim-config "${CONFIG_DIR}/nvim"
 }
 
 install_oh_my_zsh() {
@@ -244,23 +226,22 @@ install_vial() {
     export USER_GID=`id -g`; sudo --preserve-env=USER_GID sh -c 'echo "KERNEL==\"hidraw*\", SUBSYSTEM==\"hidraw\", ATTRS{serial}==\"*vial:f64c2b3c*\", MODE=\"0660\", GROUP=\"$USER_GID\", TAG+=\"uaccess\", TAG+=\"udev-acl\"" > /etc/udev/rules.d/99-vial.rules && udevadm control --reload && udevadm trigger'
 }
 
-install_deb_package "Chrome" "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
-install_deb_package "Ripgrep" "https://github.com/BurntSushi/ripgrep/releases/download/14.1.0/ripgrep_14.1.0-1_amd64.deb" "yes"
-install_deb_package "Fd" "https://github.com/sharkdp/fd/releases/download/v9.0.0/fd-musl_9.0.0_amd64.deb" "yes"
+install_other_packages() {
+    install_deb_package "Chrome" "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
+    install_deb_package "Ripgrep" "https://github.com/BurntSushi/ripgrep/releases/download/14.1.0/ripgrep_14.1.0-1_amd64.deb" "yes"
+    install_deb_package "Fd" "https://github.com/sharkdp/fd/releases/download/v9.0.0/fd-musl_9.0.0_amd64.deb" "yes"
 
-install_nvim
-install_oh_my_zsh
-install_lazygit
-install_kitty
-install_telegram
+    install_nvim
+    install_oh_my_zsh
+    install_lazygit
+    install_kitty
+    install_telegram
+}
 
 
 # ##################
-# Configure packages
+# Functions to configure packages
 # ##################
-printf "\n\n====================\n"
-echo "Configuring packages"
-
 configure_tmux() {
     printf "\n=> Tmux:\n"
     local tmux_dir="${CONFIG_DIR}/tmux"
@@ -299,16 +280,35 @@ configure_corne() {
     cd ${INSTALL_SCRIPT_DIR}
 }
 
-configure_tmux
-configure_flatpak
-configure_corne
+configure_packages() {
+    configure_tmux
+    configure_flatpak
+    configure_corne
+}
 
+# ###########
+# Main script
+# ###########
+printf "\n====================\n"
+echo "Hi, this is your local Jarvis, I'll help you to install the environment"
 
-# ###################
-# After configuration
-# ###################
+printf "\n====================\n"
+echo "Installing packages from repository"
+install_apt_packages
+
 printf "\n\n====================\n"
-echo "Doing after configuration steps"
+echo "Setting up Git"
+setup_git
+
+printf "\n\n====================\n"
+echo "Installing packages from other sources"
+install_other_packages
+
+printf "\n\n====================\n"
+echo "Configuring packages"
+configure_packages
+
+printf "\n\n====================\n"
 
 echo -n "Do you want to turn off Ubuntu reporting? [y/n]: "
 read -r ans
@@ -319,5 +319,5 @@ fi
 echo -n "You need to reboot the system. Do you want to do it now? [y/n]: "
 read -r ans
 if [[ "${ans}" == "y" ]]; then
-    sudo ubuntu-report -f send no
+    reboot
 fi
