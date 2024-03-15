@@ -10,3 +10,6 @@
 [submodule "zsh-config"]
 	path = zsh-config
 	url = git@github.com:201dreamers/zsh-config.git
+[submodule "kitty-config"]
+	path = kitty-config
+	url = git@github.com:201dreamers/kitty-config.git
