@@ -1,0 +1,8 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Type=Application
+Terminal=false
+Exec=/home/choven/.local/packages/vial/Vial-v0.7.1-x86_64.AppImage
+Name=Vial
+Icon=input-keyboard
