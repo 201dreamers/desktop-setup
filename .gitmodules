@@ -1,0 +1,6 @@
+[submodule "nvim-config"]
+	path = nvim-config
+	url = git@github.com:201dreamers/nvim-config.git
+[submodule "corne-fw"]
+	path = corne-fw
+	url = git@github.com:201dreamers/corne-fw.git
