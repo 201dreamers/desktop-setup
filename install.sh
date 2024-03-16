@@ -33,18 +33,15 @@ ask_for_url() {
 # ################
 # Main directories
 # ################
-INSTALL_SCRIPT_DIR=$(pwd)
+INSTALL_SCRIPT_DIR=$(realpath $(dirname ${0}))
 
 TEMP_DIR="${HOME}/temp_dir"
 DOWNLOADS_DIR="${TEMP_DIR}/downloads"
 
-# SSH_DIR="${HOME}/.ssh"
-SSH_DIR="${TEMP_DIR}/.ssh"
+SSH_DIR="${HOME}/.ssh"
 
-# CONFIG_DIR="${HOME}/.config"
-# LOCAL_DIR="${HOME}/.local"
-CONFIG_DIR="${TEMP_DIR}/.config"
-LOCAL_DIR="${TEMP_DIR}/.local"
+CONFIG_DIR="${HOME}/.config"
+LOCAL_DIR="${HOME}/.local"
 LOCAL_PACKAGES_DIR="${LOCAL_DIR}/packages"
 LOCAL_BIN_DIR="${LOCAL_DIR}/bin"
 LOCAL_DESKTOP_FILES_DIR="${LOCAL_DIR}/share/applications"
@@ -157,8 +154,8 @@ install_nvim() {
 install_oh_my_zsh() {
     printf "\n=> Oh my zsh:\n"
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-    mv "${TEMP_DIR}/.zshrc" "${TEMP_DIR}/.zshrc_bak"
-    ln -sf "${INSTALL_SCRIPT_DIR}/zsh-config/.zshrc" "${TEMP_DIR}/.zshrc"
+    mv "${HOME}/.zshrc" "${HOME}/.zshrc_bak"
+    ln -sf "${INSTALL_SCRIPT_DIR}/zsh-config/.zshrc" "${HOME}/.zshrc"
 }
 
 # $1 - ask for new url ["y" or empty]
@@ -272,7 +269,7 @@ configure_flatpak() {
 configure_corne() {
     printf "\n=> Corne:\n"
 
-    local qmk_dir="${TEMP_DIR}/Documents/qmk-fw"
+    local qmk_dir="${HOME}/Documents/qmk-fw"
     create_dir_if_dont_exist ${qmk_dir}
 
     cd ${qmk_dir}
@@ -337,4 +334,4 @@ if [[ "${ans}" == "y" ]]; then
     reboot
 fi
 
-# rm -rf ${TEMP_DIR}
+rm -rf ${TEMP_DIR}
