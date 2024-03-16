@@ -100,6 +100,8 @@ setup_git() {
         echo "Copy this, add to your github account, and press Enter"
         read
     fi
+
+    git submodule update --init --recursive
 }
 
 # ################################################
