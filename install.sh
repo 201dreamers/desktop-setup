@@ -61,31 +61,31 @@ create_dir_if_dont_exist ${LOCAL_DESKTOP_FILES_DIR}
 # Install packages from repository
 # ################################
 install_apt_packages() {
-    local basic_packages="vim zsh git curl wget tmux zip unzip  gcc make cmake bash-completion npm fzf"
-    local python_packages="python-is-python3 python3-all python3-all-venv python3-pip-whl python3-pip python3-pynvim"
+    local basic_packages="vim zsh git curl wget tmux zip unzip  gcc make cmake bash-completion npm fzf xsel xclip"
+    local python_packages="python-is-python3 python3-all python3-venv python3-pip-whl python3-pip python3-pynvim"
     local gnome_packages="gnome-shell-extensions gnome-shell-extension-manager gnome-tweaks"
     local application_packages="synaptic dconf-editor vlc ubuntu-restricted-extras gimp libreoffice gtk-3-examples flameshot obs-studio"
     local additional_packages="flatpak"
 
     echo "Please, be ready to input your password. Press Enter now"
     read
-    sudo apt install -y ${basic_packages} ${gnome_packages} ${gnome_packages} ${application_packages} ${additional_packages}
+    sudo apt install -y ${basic_packages} ${gnome_packages} ${python_packages} ${application_packages} ${additional_packages}
 }
 
 # #########
 # Setup git
 # #########
 setup_git() {
-    echo -n "Enter you email: "
-    read -r email
-
-    echo -n "Do you have existing git ssh keys? [y/n]: "
+    echo -n "Do you have existing git ssh keys? [y/N]: "
     read -r ans
 
     if [[ "${ans}" == "y" ]]; then
-        echo "Put your existing git ssh keys into ${SSH_DIR} and press Enter"
+        echo "Put your existing git ssh keys into ${SSH_DIR}, run ssh-add for each key, and press Enter"
         read
     else
+        echo -n "Enter your email: "
+        read -r email
+
         echo "Generating keys"
 
         ssh-keygen -t ed25519 -C ${email}
@@ -156,6 +156,7 @@ install_oh_my_zsh() {
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
     mv "${HOME}/.zshrc" "${HOME}/.zshrc_bak"
     ln -sf "${INSTALL_SCRIPT_DIR}/zsh-config/.zshrc" "${HOME}/.zshrc"
+    touch "${HOME}/.zshrc.ignore"
 }
 
 # $1 - ask for new url ["y" or empty]
@@ -232,7 +233,7 @@ install_vial() {
 
 # $1 - ask for url with new version
 install_other_packages() {
-    # install_deb_package "Chrome" "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
+    install_deb_package "Chrome" "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
 
     install_nvim
     install_oh_my_zsh
