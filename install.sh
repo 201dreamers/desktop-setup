@@ -98,7 +98,7 @@ setup_git() {
         read
     fi
 
-    git submodule update --init --recursive
+    # git submodule update --init --recursive
 }
 
 # ################################################
@@ -288,12 +288,6 @@ configure_corne() {
     ln -sf "${INSTALL_SCRIPT_DIR}/corne-fw" "${qmk_dir}/vial-qmk/keyboards/crkbd/keymaps/201dreamers"
 }
 
-configure_packages() {
-    configure_tmux
-    configure_flatpak
-    configure_corne
-}
-
 # ###########
 # Main script
 # ###########
@@ -314,22 +308,28 @@ setup_git
 
 printf "\n====================\n"
 echo "Installing packages from other sources"
-echo -n "Do you want to provide urls for new versions of packages? [y/n]: "
+echo -n "Do you want to provide urls for new versions of packages? [y/N]: "
 read -r ans
 install_other_packages ${ans}
 
 printf "\n====================\n"
 echo "Configuring packages"
-configure_packages
+configure_tmux
+configure_flatpak
+echo -n "Do you want to configure corne? [y/N]: "
+read -r ans
+if [[ "${ans}" == "y" ]]; then
+    configure_corne
+fi
 
 printf "\n====================\n"
-echo -n "Do you want to turn off Ubuntu reporting? [y/n]: "
+echo -n "Do you want to turn off Ubuntu reporting? [y/N]: "
 read -r ans
 if [[ "${ans}" == "y" ]]; then
     sudo ubuntu-report -f send no
 fi
 
-echo -n "You need to reboot the system. Do you want to do it now? [y/n]: "
+echo -n "You need to reboot the system. Do you want to do it now? [y/N]: "
 read -r ans
 if [[ "${ans}" == "y" ]]; then
     reboot
