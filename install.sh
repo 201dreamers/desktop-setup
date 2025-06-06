@@ -61,7 +61,7 @@ create_dir_if_dont_exist ${LOCAL_DESKTOP_FILES_DIR}
 # Install packages from repository
 # ################################
 install_apt_packages() {
-    local basic_packages="vim zsh git curl wget tmux zip unzip  gcc make cmake bash-completion npm fzf xsel xclip"
+    local basic_packages="vim zsh git curl wget tmux zip unzip  gcc make cmake bash-completion npm fzf xsel xclip ffmpeg 7zip jq poppler-utils zoxide imagemagick"
     local python_packages="python-is-python3 python3-all python3-venv python3-pip-whl python3-pip python3-pynvim"
     local gnome_packages="gnome-shell-extensions gnome-shell-extension-manager gnome-tweaks"
     local application_packages="synaptic dconf-editor vlc ubuntu-restricted-extras gimp libreoffice gtk-3-examples flameshot obs-studio"
@@ -70,35 +70,44 @@ install_apt_packages() {
     echo "Please, be ready to input your password. Press Enter now"
     read
     sudo apt install -y ${basic_packages} ${gnome_packages} ${python_packages} ${application_packages} ${additional_packages}
+    # for pack in ${basic_packages} ${gnome_packages} ${python_packages} ${application_packages} ${additional_packages}; do
+    #     sudo apt install ${pack}
+    # done
 }
 
 # #########
 # Setup git
 # #########
 setup_git() {
-    echo -n "Do you have existing git ssh keys? [y/N]: "
+    echo -n "Do you want to install git ssh keys? [y/N]: "
     read -r ans
-
+    
     if [[ "${ans}" == "y" ]]; then
-        echo "Put your existing git ssh keys into ${SSH_DIR}, run ssh-add for each key, and press Enter"
-        read
-    else
-        echo -n "Enter your email: "
-        read -r email
+        echo -n "Do you have existing git ssh keys? [y/N]: "
+        read -r ans
 
-        echo "Generating keys"
+        if [[ "${ans}" == "y" ]]; then
+            echo "Put your existing git ssh keys into ${SSH_DIR}, run ssh-add for each key, and press Enter"
+            read
+        else
+            echo -n "Enter your email: "
+            read -r email
 
-        ssh-keygen -t ed25519 -C ${email}
-        eval "$(ssh-agent -s)"
-        ssh-add "${SSH_DIR}/id_ed25519"
+            echo "Generating keys"
 
-        echo "Your public key:"
-        cat "${SSH_DIR}/id_ed25519.pub"
-        echo "Copy this, add to your github account, and press Enter"
-        read
+            ssh-keygen -t ed25519 -C ${email}
+            eval "$(ssh-agent -s)"
+            ssh-add "${SSH_DIR}/id_ed25519"
+
+            echo "Your public key:"
+            cat "${SSH_DIR}/id_ed25519.pub"
+            echo "Copy this, add to your github account, and press Enter"
+            read
+        fi
+
+        git submodule update --init --recursive
     fi
 
-    # git submodule update --init --recursive
 }
 
 # ################################################
@@ -136,16 +145,18 @@ install_deb_package() {
 install_nvim() {
     printf "\n=> Nvim:\n"
 
-    local url="https://github.com/neovim/neovim/releases/download/stable/nvim-linux64.tar.gz"
+    local url="https://github.com/neovim/neovim/releases/download/nightly/nvim-linux-x86_64.tar.gz"
     local package_name=${url##*/}
     local filepath="${DOWNLOADS_DIR}/${package_name}"
+    local foldername=$(basename "${${filepath%.*}%.*}")
 
     download_package ${url}
     echo "Extracting ${filepath} to ${LOCAL_PACKAGES_DIR}"
     tar -C ${LOCAL_PACKAGES_DIR} -vxzf ${filepath}
+    cd "${INSTALL_SCRIPT_DIR}"
 
-    echo "Creating link inside ${LOCAL_BIN_DIR}"
-    ln -sf "${LOCAL_PACKAGES_DIR}/nvim-linux64/bin/nvim" "${LOCAL_BIN_DIR}/nvim"
+    echo "Creating link to ${LOCAL_PACKAGES_DIR}/${foldername}/bin/nvim inside ${LOCAL_BIN_DIR}"
+    ln -sf "${LOCAL_PACKAGES_DIR}/${foldername}/bin/nvim" "${LOCAL_BIN_DIR}/nvim"
 
     echo "Linking your local and remote configs"
     ln -sf "${INSTALL_SCRIPT_DIR}/nvim-config" "${CONFIG_DIR}/nvim"
@@ -157,13 +168,14 @@ install_oh_my_zsh() {
     mv "${HOME}/.zshrc" "${HOME}/.zshrc_bak"
     ln -sf "${INSTALL_SCRIPT_DIR}/zsh-config/.zshrc" "${HOME}/.zshrc"
     touch "${HOME}/.zshrc.ignore"
+    ln -sf "${INSTALL_SCRIPT_DIR}/zsh-config/mylocal.zsh-theme" "${HOME}/.oh-my-zsh/themes"
 }
 
 # $1 - ask for new url ["y" or empty]
 install_lazygit() {
     printf "\n=> Lazygit:\n"
 
-    local url="https://github.com/jesseduffield/lazygit/releases/download/v0.40.2/lazygit_0.40.2_Linux_x86_64.tar.gz"
+    local url="https://github.com/jesseduffield/lazygit/releases/download/v0.51.1/lazygit_0.51.1_Linux_x86_64.tar.gz"
     if [[ "${1}" == "y" ]]; then
         print_ask_url_message "Lazygit"
         url=$(ask_for_url ${url})
@@ -185,8 +197,8 @@ install_kitty() {
     curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin dest=${LOCAL_PACKAGES_DIR} launch=n
     ln -sf "${LOCAL_PACKAGES_DIR}/kitty.app/bin/kitty" "${LOCAL_PACKAGES_DIR}/kitty.app/bin/kitten" ${LOCAL_BIN_DIR}
     cp "${LOCAL_PACKAGES_DIR}/kitty.app/share/applications/kitty.desktop" ${LOCAL_DESKTOP_FILES_DIR}
-    sed -i "s|Icon=kitty|Icon=${LOCAL_PACKAGES_DIR}/kitty.app/share/icons/hicolor/256x256/apps/kitty.png|g" "${LOCAL_DESKTOP_FILES_DIR}/kitty*.desktop"
-    sed -i "s|Exec=kitty|Exec=${LOCAL_PACKAGES_DIR}/kitty.app/bin/kitty|g" "${LOCAL_DESKTOP_FILES_DIR}/kitty*.desktop"
+    sed -i "s|Icon=kitty|Icon=${LOCAL_PACKAGES_DIR}/kitty.app/share/icons/hicolor/256x256/apps/kitty.png|g" "${LOCAL_DESKTOP_FILES_DIR}/kitty.desktop"
+    sed -i "s|Exec=kitty|Exec=${LOCAL_PACKAGES_DIR}/kitty.app/bin/kitty|g" "${LOCAL_DESKTOP_FILES_DIR}/kitty.desktop"
 
     echo "Setting theme for kitty"
     ln -sf "${INSTALL_SCRIPT_DIR}/kitty-config/kitty-themes/themes/Sundried.conf" "${INSTALL_SCRIPT_DIR}/kitty-config/theme.conf"
@@ -212,7 +224,7 @@ install_telegram() {
 install_vial() {
     printf "\n=> Vial:\n"
 
-    local url="https://github.com/vial-kb/vial-gui/releases/download/v0.7.1/Vial-v0.7.1-x86_64.AppImage"
+    local url="https://github.com/vial-kb/vial-gui/releases/download/v0.7.3/Vial-v0.7.3-x86_64.AppImage"
     if [[ "${1}" == "y" ]]; then
         print_ask_url_message "Vial"
         url=$(ask_for_url ${url})
@@ -231,26 +243,63 @@ install_vial() {
     export USER_GID=`id -g`; sudo --preserve-env=USER_GID sh -c 'echo "KERNEL==\"hidraw*\", SUBSYSTEM==\"hidraw\", ATTRS{serial}==\"*vial:f64c2b3c*\", MODE=\"0660\", GROUP=\"$USER_GID\", TAG+=\"uaccess\", TAG+=\"udev-acl\"" > /etc/udev/rules.d/99-vial.rules && udevadm control --reload && udevadm trigger'
 }
 
-# $1 - ask for url with new version
-install_other_packages() {
-    install_deb_package "Chrome" "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
+install_fzf() {
+    git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+    ~/.fzf/install
+}
 
-    install_nvim
-    install_oh_my_zsh
-    install_kitty
-    # install_telegram
+install_rust() {
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+}
 
-    install_deb_package "Ripgrep" "https://github.com/BurntSushi/ripgrep/releases/download/14.1.0/ripgrep_14.1.0-1_amd64.deb" ${1}
-    install_deb_package "Fd" "https://github.com/sharkdp/fd/releases/download/v9.0.0/fd-musl_9.0.0_amd64.deb" ${1}
-
-    install_lazygit ${1}
-    install_vial ${1}
+install_yazi() {
+    cargo install --locked yazi-fm yazi-cli
 }
 
 
 # ###############################
 # Functions to configure packages
 # ###############################
+configure_keybindings() {
+    # == Caps as Ctrl ==
+    gsettings set org.gnome.desktop.input-sources xkb-options "['ctrl:nocaps']"
+
+    # == Workspaces ==
+    for i in {1..9}; do
+        gsettings set org.gnome.shell.keybindings switch-to-application-${i} "[]"
+        gsettings set org.gnome.shell.keybindings open-new-window-application-${i} "[]"
+        gsettings set org.gnome.desktop.wm.keybindings switch-to-workspace-${i} "['<Super>${i}']"
+        gsettings set org.gnome.desktop.wm.keybindings move-to-workspace-${i} "['<Super><Control>${i}']"
+    done
+
+    # == Windows ==
+    gsettings set org.gnome.desktop.wm.keybindings switch-applications "[]"
+    gsettings set org.gnome.desktop.wm.keybindings switch-applications-backward "[]"
+    gsettings set org.gnome.desktop.wm.keybindings switch-windows "['<Alt>Tab', '<Super>Tab']"
+    gsettings set org.gnome.desktop.wm.keybindings switch-windows-backward "['<Shift><Alt>Tab', '<Shift><Super>Tab']"
+    gsettings set org.gnome.desktop.wm.keybindings show-desktop "[]"
+    gsettings set org.gnome.desktop.wm.keybindings close "['<Super>c']"
+    gsettings set org.gnome.desktop.wm.keybindings maximize "[]"
+    gsettings set org.gnome.desktop.wm.keybindings unmaximize "[]"
+    gsettings set org.gnome.desktop.wm.keybindings minimize "['<Super>m']"
+    gsettings set org.gnome.desktop.wm.keybindings toggle-fullscreen "['<Shift><Super>f']"
+
+    # == App starters
+    gsettings set org.gnome.settings-daemon.plugins.media-keys home "['<Super>e']"
+    gsettings set org.gnome.settings-daemon.plugins.media-keys www "['<Super>b']"
+
+    gsettings set org.gnome.shell.keybindings show-screenshot-ui "[]"
+
+    gsettings set org.gnome.settings-daemon.plugins.media-keys custom-keybindings "['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/']"
+    gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/ name 'flameshot'
+    gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/ command 'flameshot gui'
+    gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/ name 'Print'
+
+    gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/ name 'kitty'
+    gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/ command 'sh -c ~/.local/bin/kitty'
+    gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/ name '<Super>Return'
+}
+
 configure_tmux() {
     printf "\n=> Tmux:\n"
     local tmux_dir="${CONFIG_DIR}/tmux"
@@ -310,10 +359,30 @@ printf "\n====================\n"
 echo "Installing packages from other sources"
 echo -n "Do you want to provide urls for new versions of packages? [y/N]: "
 read -r ans
-install_other_packages ${ans}
+install_deb_package "Ripgrep" "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep_14.1.1-1_amd64.deb" ${ans}
+install_deb_package "Fd" "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd_10.2.0_amd64.deb" ${ans}
+
+install_lazygit ${ans}
+install_vial ${ans}
+
+install_deb_package "Chrome" "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
+
+install_rust
+install_nvim
+install_oh_my_zsh
+install_kitty
+install_yazi
 
 printf "\n====================\n"
-echo "Configuring packages"
+echo -n "Do you want to install Telegram Desktop? [y/N]: "
+read -r ans
+if [[ "${ans}" == "y" ]]; then
+    install_telegram
+fi
+
+printf "\n====================\n"
+echo "Configuring system & packages"
+configure_keybindings
 configure_tmux
 configure_flatpak
 echo -n "Do you want to configure corne? [y/N]: "
